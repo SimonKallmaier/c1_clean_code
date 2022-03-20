@@ -37,7 +37,6 @@ def test_eda(perform_eda):
     """
     # TODO: 1. check if folder has correct length of files with os
     # TODO: 2. check string naming of plots
-    perform_eda(df, cat)
     assert len(os.listdir(os.path.join("images", "eda"))) == 5
 
 def test_encoder_helper(encoder_helper):
@@ -60,6 +59,7 @@ def test_classification_report_image(train_models):
     test train_models
     """
     # TODO 1: test if reports are saved
+    # TODO: can only be called once a model exists
 
 
 def test_feature_importance_plot(train_models):
@@ -67,6 +67,7 @@ def test_feature_importance_plot(train_models):
     test train_models
     """
     # TODO 1: test if reports are saved
+    # TODO: can only only be called once a rf model exists
 
 
 def test_train_models(train_models):

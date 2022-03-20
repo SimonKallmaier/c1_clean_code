@@ -29,11 +29,14 @@ class ChurnModelling:
 
     models_path = {"rfc": os.path.join("models", "rfc_model.pkl"), "lrc": os.path.join("models", "logistic_model.pkl")}
 
-    def __init__(self):
-        pass
+    def __init__(self, pth):
+        # load data
+        df = self._import_data(pth)
+        df = self._encoder_helper(df_to_encode=df, category_lst=constants.cat_columns)
+        self.df = df
 
     @staticmethod
-    def import_data(pth: str) -> pd.DataFrame:
+    def _import_data(pth: str) -> pd.DataFrame:
         """
         returns dataframe for the csv found at pth
 
@@ -46,8 +49,7 @@ class ChurnModelling:
         df_import["Churn"] = df_import["Attrition_Flag"].apply(lambda val: 0 if val == "Existing Customer" else 1)
         return df_import
 
-    @staticmethod
-    def perform_eda(df_churn_eda: pd.DataFrame) -> None:
+    def perform_eda(self) -> None:
         """
         perform eda on df_to_train_test_split and save figures to images folder
         input:
@@ -60,39 +62,38 @@ class ChurnModelling:
         pth_to_eda_plots = os.path.join("images", "eda")
 
         plt.figure(figsize=(20, 10))
-        df_churn_eda["Churn"].hist()
+        self.df["Churn"].hist()
         plt.savefig(os.path.join(pth_to_eda_plots, "churn_hist.png"))
 
         plt.figure(figsize=(20, 10))
-        df_churn_eda["Customer_Age"].hist()
+        self.df["Customer_Age"].hist()
         plt.savefig(os.path.join(pth_to_eda_plots, "customer_age_hist.png"))
 
         plt.figure(figsize=(20, 10))
-        df_churn_eda.Marital_Status.value_counts("normalize").plot(kind="bar")
+        self.df.Marital_Status.value_counts("normalize").plot(kind="bar")
         plt.savefig(os.path.join(pth_to_eda_plots, "martial_status.png"))
 
         plt.figure(figsize=(20, 10))
-        sns.displot(df_churn_eda["Total_Trans_Ct"])
+        sns.displot(self.df["Total_Trans_Ct"])
         plt.savefig(os.path.join(pth_to_eda_plots, "total_trans_ct_distribution.png"))
 
         plt.figure(figsize=(20, 10))
-        sns.heatmap(df_churn_eda.corr(), annot=False, cmap="Dark2_r", linewidths=2)
+        sns.heatmap(self.df.corr(), annot=False, cmap="Dark2_r", linewidths=2)
         plt.savefig(os.path.join(pth_to_eda_plots, "correlation_heatmap.png"))
 
     @staticmethod
-    def encoder_helper(df_to_encode: pd.DataFrame, category_lst: typing.List[str]):
+    def _encoder_helper(df_to_encode, category_lst: typing.List[str]):
         """
         helper function to turn each categorical column into a new column with
         propotion of churn for each category - associated with cell 15 from the notebook
 
         input:
-                df_to_train_test_split: pandas dataframe
+                df_to_encode: pandas dataframe
                 category_lst: list of columns that contain categorical features
 
         output:
-                df_to_train_test_split: pandas dataframe with new columns for
+                df_to_encode: pandas dataframe with new columns for
         """
-
         for categorical_col_name in category_lst:
             # dynamically define names for new encoded columns
             churn_categorical_col_name = f"{categorical_col_name}_Churn"
@@ -104,10 +105,7 @@ class ChurnModelling:
 
         return df_to_encode
 
-    @staticmethod
-    def perform_feature_engineering(
-        df_to_train_test_split: pd.DataFrame, keep_cols: typing.List[str]
-    ) -> typing.Tuple[typing.Any, typing.Any, typing.Any, typing.Any]:
+    def _perform_feature_engineering(self, keep_cols: typing.List[str]):
         """
         input:
                   df_to_train_test_split: pandas dataframe
@@ -119,13 +117,17 @@ class ChurnModelling:
                   y_train: y training data
                   y_test: y testing data
         """
-        y = df_to_train_test_split["Churn"]
+        y = self.df["Churn"]
         X = pd.DataFrame()
-        X[keep_cols] = df_to_train_test_split[keep_cols]
-        return train_test_split(X, y, test_size=0.3, random_state=42)
+        X[keep_cols] = self.df[keep_cols]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        return X_train, X_test, y_train, y_test
 
-    @staticmethod
-    def train_models(X_train, y_train):
+    def set_train_test_split(self):
+        X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.keep_cols)
+        self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
+
+    def train_models(self):
         """
         train, store model results: images + scores, and store models
         input:
@@ -149,14 +151,13 @@ class ChurnModelling:
         }
 
         cv_rfc = GridSearchCV(estimator=rfc, param_grid=param_grid, cv=5)
-        cv_rfc.fit(X_train, y_train)
+        cv_rfc.fit(self.X_train, self.y_train)
         joblib.dump(cv_rfc.best_estimator_, ChurnModelling.models_path["rfc"])
 
-        lrc.fit(X_train, y_train)
+        lrc.fit(self.X_train, self.y_train)
         joblib.dump(lrc, ChurnModelling.models_path["lrc"])
 
-    @staticmethod
-    def classification_report_image(X_train, X_test, y_train, y_test):
+    def classification_report_image(self):
         """
         produces classification report for training and testing results and stores report as image
         in images folder
@@ -177,36 +178,35 @@ class ChurnModelling:
         lrc = joblib.load(ChurnModelling.models_path["lrc"])
 
         # prediction on train and test set for both models
-        y_train_preds_rf = rfc.predict(X_train)
-        y_test_preds_rf = rfc.predict(X_test)
+        y_train_preds_rf = rfc.predict(self.X_train)
+        y_test_preds_rf = rfc.predict(self.X_test)
 
-        y_train_preds_lr = lrc.predict(X_train)
-        y_test_preds_lr = lrc.predict(X_test)
+        y_train_preds_lr = lrc.predict(self.X_train)
+        y_test_preds_lr = lrc.predict(self.X_test)
 
         # scores
         print("random forest results")
         print("test results")
-        print(classification_report(y_test, y_test_preds_rf))
+        print(classification_report(self.y_test, y_test_preds_rf))
         print("train results")
-        print(classification_report(y_train, y_train_preds_rf))
+        print(classification_report(self.y_train, y_train_preds_rf))
 
         print("logistic regression results")
         print("test results")
-        print(classification_report(y_test, y_test_preds_lr))
+        print(classification_report(self.y_test, y_test_preds_lr))
         print("train results")
-        print(classification_report(y_train, y_train_preds_lr))
+        print(classification_report(self.y_train, y_train_preds_lr))
 
-        lrc_plot = plot_roc_curve(lrc, X_test, y_test)
+        lrc_plot = plot_roc_curve(lrc, self.X_test, self.y_test)
         # plots
         plt.figure(figsize=(15, 8))
         ax = plt.gca()
-        rfc_disp = plot_roc_curve(rfc, X_test, y_test, ax=ax, alpha=0.8)
+        rfc_disp = plot_roc_curve(rfc, self.X_test, self.y_test, ax=ax, alpha=0.8)
         lrc_plot.plot(ax=ax, alpha=0.8)
         plt.savefig(os.path.join("images", "results", "auc.png"))
         plt.show()
 
-    @staticmethod
-    def feature_importance_plot(X_data):
+    def feature_importance_plot(self):
         """
         creates and stores the feature importances in pth
         input:
@@ -216,6 +216,7 @@ class ChurnModelling:
         output:
                  None
         """
+        X_data = pd.concat([self.X_train, self.X_test])
         model = joblib.load(ChurnModelling.models_path["rfc"])
         # Calculate feature importances
         importances = model.feature_importances_
@@ -241,13 +242,9 @@ class ChurnModelling:
 
 
 if __name__ == "__main__":
-    churn_model = ChurnModelling()
-    df = churn_model.import_data(pth="./data/bank_data.csv")
-    churn_model.perform_eda(df)
-    df_encoded = churn_model.encoder_helper(df, category_lst=constants.cat_columns)
-    X_train, X_test, y_train, y_test = churn_model.perform_feature_engineering(
-        df_encoded, keep_cols=constants.keep_cols
-    )
-    churn_model.train_models(X_train, y_train)
-    churn_model.classification_report_image(X_train, X_test, y_train, y_test)
-    churn_model.feature_importance_plot(X_data=pd.concat([X_train, X_test]))
+    churn_model = ChurnModelling(pth="./data/bank_data.csv")
+    churn_model.perform_eda()
+    churn_model.set_train_test_split()
+    churn_model.train_models()
+    churn_model.classification_report_image()
+    churn_model.feature_importance_plot()
