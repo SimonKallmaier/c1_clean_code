@@ -1,7 +1,6 @@
 """
-TODO: flake8/ pylint/ autopep8
-TODO: adjust docstrings
-TODO: change class such that it makes more sense
+Create class ChurnModelling which loads the data, trains a random forest classifier and a logistic regression,
+and evaluates the performance.
 Author: Simon Kallmaier
 Date: March 2022
 """
@@ -43,17 +42,41 @@ class ChurnModelling:
         input:
                 pth: a path to the csv
         output:
-                df_to_train_test_split: pandas dataframe
+                df_import: pandas dataframe
         """
         df_import = pd.read_csv(pth)
         df_import["Churn"] = df_import["Attrition_Flag"].apply(lambda val: 0 if val == "Existing Customer" else 1)
         return df_import
 
+    @staticmethod
+    def _encoder_helper(df_to_encode: pd.DataFrame, category_lst: typing.List[str]):
+        """
+        helper function to turn each categorical column into a new column with
+        propotion of churn for each category - associated with cell 15 from the notebook
+
+        input:
+                df_to_encode: pandas dataframe
+                category_lst: list of columns that contain categorical features
+
+        output:
+                df_to_encode: pandas dataframe with new columns for
+        """
+        for categorical_col_name in category_lst:
+            # dynamically define names for new encoded columns
+            churn_categorical_col_name = f"{categorical_col_name}_Churn"
+            col_name_list: typing.List[float] = []
+            groups = df_to_encode.groupby(categorical_col_name).mean()["Churn"]
+            for val in df_to_encode[categorical_col_name]:
+                col_name_list.append(groups.loc[val])
+            df_to_encode[churn_categorical_col_name] = col_name_list
+
+        return df_to_encode
+
     def perform_eda(self) -> None:
         """
-        perform eda on df_to_train_test_split and save figures to images folder
+        perform eda on self.ds and save figures to images folder
         input:
-                df_to_train_test_split: pandas dataframe
+                self
 
         output:
                 None
@@ -81,34 +104,10 @@ class ChurnModelling:
         sns.heatmap(self.df.corr(), annot=False, cmap="Dark2_r", linewidths=2)
         plt.savefig(os.path.join(pth_to_eda_plots, "correlation_heatmap.png"))
 
-    @staticmethod
-    def _encoder_helper(df_to_encode, category_lst: typing.List[str]):
-        """
-        helper function to turn each categorical column into a new column with
-        propotion of churn for each category - associated with cell 15 from the notebook
-
-        input:
-                df_to_encode: pandas dataframe
-                category_lst: list of columns that contain categorical features
-
-        output:
-                df_to_encode: pandas dataframe with new columns for
-        """
-        for categorical_col_name in category_lst:
-            # dynamically define names for new encoded columns
-            churn_categorical_col_name = f"{categorical_col_name}_Churn"
-            col_name_list: typing.List[float] = []
-            groups = df_to_encode.groupby(categorical_col_name).mean()["Churn"]
-            for val in df_to_encode[categorical_col_name]:
-                col_name_list.append(groups.loc[val])
-            df_to_encode[churn_categorical_col_name] = col_name_list
-
-        return df_to_encode
-
     def _perform_feature_engineering(self, keep_cols: typing.List[str]):
         """
         input:
-                  df_to_train_test_split: pandas dataframe
+                  self
                   keep_cols: list of columns that are used in model
 
         output:
@@ -124,6 +123,12 @@ class ChurnModelling:
         return X_train, X_test, y_train, y_test
 
     def set_train_test_split(self):
+        """
+        input:
+                self
+        output:
+                set train test split as class instances
+        """
         X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.keep_cols)
         self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
 
@@ -131,10 +136,7 @@ class ChurnModelling:
         """
         train, store model results: images + scores, and store models
         input:
-                  X_train: X training data
-                  X_test: X testing data
-                  y_train: y training data
-                  y_test: y testing data
+                  self
         output:
                   None
         """
@@ -162,12 +164,7 @@ class ChurnModelling:
         produces classification report for training and testing results and stores report as image
         in images folder
         input:
-                y_train: training response values
-                y_test:  test response values
-                y_train_preds_lr: training predictions from logistic regression
-                y_train_preds_rf: training predictions from random forest
-                y_test_preds_lr: test predictions from logistic regression
-                y_test_preds_rf: test predictions from random forest
+                self
 
         output:
                  None
@@ -208,22 +205,21 @@ class ChurnModelling:
 
     def feature_importance_plot(self):
         """
-        creates and stores the feature importances in pth
+        creates and stores the feature importance in pth
         input:
-                model: model object containing feature_importances_
-                X_data: pandas dataframe of X values
+                self
 
         output:
                  None
         """
         X_data = pd.concat([self.X_train, self.X_test])
         model = joblib.load(ChurnModelling.models_path["rfc"])
-        # Calculate feature importances
+        # Calculate feature importance
         importances = model.feature_importances_
-        # Sort feature importances in descending order
+        # Sort feature importance in descending order
         indices = np.argsort(importances)[::-1]
 
-        # Rearrange feature names so they match the sorted feature importances
+        # Rearrange feature names so they match the sorted feature importance
         names = [X_data.columns[i] for i in indices]
 
         # Create plot
