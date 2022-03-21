@@ -1,5 +1,15 @@
+"""
+
+Author: Simon Kallmaier
+Date: 21.03.2022
+"""
+
 import os
+import time
 import logging
+
+import pandas as pd
+
 import churn_library
 import constants
 
@@ -12,70 +22,147 @@ logging.basicConfig(
 )
 
 
-def test_import(import_data):
-    """
-    test data import - this example is completed for you to assist with the other test functions
-    """
-    try:
-        df = import_data("./data/bank_data.csv")
-        logging.info("Testing import_data: SUCCESS")
-    except FileNotFoundError as err:
-        logging.error("Testing import_eda: The file wasn't found")
-        raise err
+class TestChurnModelling:
+    """TODO: add docstring.
+    # TODO: use pytest fixtures
 
-    try:
-        assert df.shape[0] > 0
-        assert df.shape[1] > 0
-    except AssertionError as err:
-        logging.error("Testing import_data: The file doesn't appear to have rows and columns")
-        raise err
+    """
 
+    def setup(self):
+        """Set up the class."""
+        self.churn_model = churn_library.ChurnModelling(data_pth="./data/bank_data.csv")
 
-def test_eda(perform_eda):
-    """
-    test perform eda function
-    """
-    # TODO: 1. check if folder has correct length of files with os
-    # TODO: 2. check string naming of plots
-    assert len(os.listdir(os.path.join("images", "eda"))) == 5
+    @staticmethod
+    def _helper_test_outputs_are_saved(
+        path: str, function_name: str, nb_of_expected_images: int, time_to_check: int = 600
+    ) -> None:
+        try:
+            # check if all files are created
+            assert len(os.listdir(path)) == nb_of_expected_images
+            logging.info("Testing {function_name}: All expected EDA files are created")
+        except AssertionError as err:
+            logging.error(
+                f"Testing {function_name}: There are {len(os.listdir(os.path.join('images', 'eda')))} files. We expect 5."
+            )
+            raise err
 
-def test_encoder_helper(encoder_helper):
-    """
-    test encoder helper
-    """
-    # TODO: 1. check if defined colnames appear in dataframe
+        # check if all files are up-to-date
+        for image in os.listdir(os.path.join("images", "eda")):
+            os_ct = os.path.getctime(image)
+            time_diff = time.time() - time.ctime(os_ct)
+            try:
+                assert time_diff < time_to_check
+                logging.debug(f"Testing {function_name}: {image} has been added within {time_to_check / 60} minutes")
+            except AssertionError as err:
+                logging.error(
+                    f"Testing {function_name}: {image} is not up to date. The file was not created within last {time_to_check / 60} minutes."
+                )
+                raise err
+        logging.info(f"All files in /images/eda are created within the last {time_to_check / 60} minutes.")
 
+    def test_import(self):
+        """
+        test data import - this example is completed for you to assist with the other test functions
+        """
+        try:
+            df = self.churn_model._import_data("./data/bank_data.csv")
+            logging.info("Testing import_data: SUCCESS")
+        except FileNotFoundError as err:
+            logging.error("Testing import_eda: The file wasn't found")
+            raise err
 
-def test_perform_feature_engineering(perform_feature_engineering):
-    """
-    test perform_feature_engineering
-    """
-    # TODO 1: check if tuple is returned
-    # TODO 2: check input dim for Xtrain, Xtest
+        try:
+            assert df.shape[0] > 0
+            assert df.shape[1] > 0
+        except AssertionError as err:
+            logging.error("Testing import_data: The file doesn't appear to have rows and columns")
+            raise err
 
+    def test_encoder_helper(self):
+        """
+        test encoder helper
+        """
 
-def test_classification_report_image(train_models):
-    """
-    test train_models
-    """
-    # TODO 1: test if reports are saved
-    # TODO: can only be called once a model exists
+        df = self.churn_model._import_data(self.churn_model.data_pth)
+        encoded_dfs = self.churn_model._encoder_helper(df_to_encode=df, category_lst=constants.cat_columns)
 
+        # save new column names in list. Same code which was used to define new names
+        new_cat_col_names = [f"{categorical_col_name}_Churn" for categorical_col_name in constants.cat_columns]
+        # check if all columns exist
+        assert pd.Series(new_cat_col_names).isin(encoded_dfs.columns).mean() == 1
 
-def test_feature_importance_plot(train_models):
-    """
-    test train_models
-    """
-    # TODO 1: test if reports are saved
-    # TODO: can only only be called once a rf model exists
+        # TODO 2. check if encoding worked on all columns
 
+    def test_perform_eda(self):
+        """
+        This test checks if all files are saved correctly, by checking if the list of plots is complete and by checking
+        the update date of each file.
+        """
+        self.churn_model.perform_eda()
 
-def test_train_models(train_models):
-    """
-    test train_models
-    """
-    # TODO 1: test if models are saved
-    # TODO 2: test if model can be loaded
+        self._helper_test_outputs_are_saved(
+            path=os.path.join("images", "eda"),
+            function_name="perform_eda",
+            nb_of_expected_images=5,
+        )
+
+    def test_perform_feature_engineering(self):
+        """
+        test perform_feature_engineering
+        """
+        train_test_date = self.churn_model._perform_feature_engineering(keep_cols=constants.keep_cols)
+
+        try:
+            # check data types
+            assert isinstance(train_test_date, tuple)
+            X_train, X_test, y_train, y_test = train_test_date
+            assert isinstance(X_train, pd.DataFrame)
+            logging.info("Testing perform_feature_engineering: Tuple of four pandas DataFrames are returned.")
+        except AssertionError as err:
+            logging.error(
+                "Testing perform_feature_engineering: This function does not return a tuple of four DataFrames"
+            )
+            raise err
+
+        try:
+            assert X_train.shape[0] == y_train.shape[0]
+            assert X_test.shape[1] == len(constants.keep_cols)
+            logging.info("Testing perform_feature_engineering: Train and test data have the correct shapre")
+        except AssertionError as err:
+            logging.error(
+                "Testing perform_feature_engineering: Train or test data do not have the correct shapes."
+                f"X_train: {X_train.shape}, X_test: {X_test.shape}, y_train: {y_train.shape}, y_test: {y_test.shape}"
+            )
+            raise err
+
+    def test_classification_report_image(self):
+        """
+        test train_models
+        """
+        self.churn_model.classification_report_image()
+        # TODO 1: test if reports are saved
+        self._helper_test_outputs_are_saved(
+            path=os.path.join("images", "results"),
+            function_name="classification_report_image",
+            nb_of_expected_images=2,
+        )
+        # TODO: can only be called once a model exists
+
+    def test_feature_importance_plot(self):
+        """
+        test train_models
+        """
+        self.churn_model.feature_importance_plot()
+        # TODO 1: test if reports are saved
+        # TODO: can only only be called once a rf model exists
+
+    def test_train_models(self):
+        """
+        test train_models
+        """
+        self.churn_model.train_models()
+        # TODO 1: test if models are saved
+        # TODO 2: test if model can be loaded
 
 
 if __name__ == "__main__":

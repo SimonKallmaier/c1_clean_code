@@ -28,9 +28,10 @@ class ChurnModelling:
 
     models_path = {"rfc": os.path.join("models", "rfc_model.pkl"), "lrc": os.path.join("models", "logistic_model.pkl")}
 
-    def __init__(self, pth):
+    def __init__(self, data_pth):
         # load data
-        df = self._import_data(pth)
+        self.data_pth = data_pth
+        df = self._import_data(self.data_pth)
         df = self._encoder_helper(df_to_encode=df, category_lst=constants.cat_columns)
         self.df = df
 
@@ -238,7 +239,7 @@ class ChurnModelling:
 
 
 if __name__ == "__main__":
-    churn_model = ChurnModelling(pth="./data/bank_data.csv")
+    churn_model = ChurnModelling(data_pth="./data/bank_data.csv")
     churn_model.perform_eda()
     churn_model.set_train_test_split()
     churn_model.train_models()
