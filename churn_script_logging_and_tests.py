@@ -33,19 +33,19 @@ class TestChurnModelling:
 
     @staticmethod
     def _helper_test_outputs_are_saved(
-        path: str, function_name: str, nb_of_expected_images: int, time_to_check: int = 600
+        path: str, function_name: str, nb_of_expected_files: int, time_to_check: int = 600
     ) -> None:
         """
         Helper function to test the creation of input files. This method can be used both for images and models
         :param path: path to files that should be checked
         :param function_name:  name of function for logging
-        :param nb_of_expected_images: number of expected files to be created
+        :param nb_of_expected_files: number of expected files to be created
         :param time_to_check: time window between text execution and file creation
         :return: None
         """
         try:
             # check if all files are created
-            assert len(os.listdir(path)) == nb_of_expected_images
+            assert len(os.listdir(path)) == nb_of_expected_files
             logging.info("Testing {function_name}: All expected EDA files are created")
         except AssertionError as err:
             logging.error(
@@ -109,7 +109,7 @@ class TestChurnModelling:
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "eda"),
             function_name="perform_eda",
-            nb_of_expected_images=5,
+            nb_of_expected_files=5,
         )
 
     def test_perform_feature_engineering(self):
@@ -146,46 +146,23 @@ class TestChurnModelling:
         test train_models
         """
         self.churn_model.set_train_test_split()
-        self.churn_model.train_models()
+        self.churn_model.train_models_and_evaluate()
         self._helper_test_outputs_are_saved(
             path=os.path.join("models"),
             function_name="train_models",
-            nb_of_expected_images=2,
+            nb_of_expected_files=2,
         )
-
-    def test_classification_report_image(self):
-        """
-        test train_models
-        """
-        self.churn_model.classification_report_image()
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "results"),
             function_name="classification_report_image",
-            nb_of_expected_images=1,
+            nb_of_expected_files=1,
         )
-
-    def test_feature_importance_plot(self):
-        """
-        test train_models
-        """
-        self.churn_model.feature_importance_plot()
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "feature_importance"),
             function_name="feature_importance_plot",
-            nb_of_expected_images=2,
+            nb_of_expected_files=1,
         )
-
-    def test_order_of_execution(self):
-        # TODO
-        assert False
 
 
 if __name__ == "__main__":
-    test_churn_model = TestChurnModelling()
-    test_churn_model.test_import()
-    test_churn_model.test_encoder_helper()
-    test_churn_model.test_perform_eda()
-    test_churn_model.test_perform_feature_engineering()
-    test_churn_model.test_train_models()
-    test_churn_model.test_classification_report_image()
-    test_churn_model.test_feature_importance_plot()
+    pass

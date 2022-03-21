@@ -112,15 +112,13 @@ class ChurnModelling:
 
     def set_train_test_split(self):
         """
-        input:
-                self
-        output:
-                set train test split as class instances
+
+        :return: set train test split as class instances
         """
         X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.KEEP_COLS)
         self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
 
-    def train_models(self):
+    def train_models_and_evaluate(self):
         """
         train, store model results: images + scores, and store models
         :return: None
@@ -144,13 +142,7 @@ class ChurnModelling:
         lrc.fit(self.X_train, self.y_train)
         joblib.dump(lrc, ChurnModelling.models_path["lrc"])
 
-    def classification_report_image(self):
-        """
-        produces classification report for training and testing results and stores report as image
-        in images folder
-        :return: None
-        """
-
+        # classification report image
         # load models
         rfc = joblib.load(ChurnModelling.models_path["rfc"])
         lrc = joblib.load(ChurnModelling.models_path["lrc"])
@@ -184,11 +176,7 @@ class ChurnModelling:
         plt.savefig(os.path.join("images", "results", "auc.png"))
         plt.show()
 
-    def feature_importance_plot(self):
-        """
-        creates and stores the feature importance in pth
-        :return:
-        """
+        # feature importance plot
         X_data = pd.concat([self.X_train, self.X_test])
         model = joblib.load(ChurnModelling.models_path["rfc"])
         # Calculate feature importance
@@ -218,6 +206,4 @@ if __name__ == "__main__":
     churn_model = ChurnModelling(data_pth="./data/bank_data.csv")
     churn_model.perform_eda()
     churn_model.set_train_test_split()
-    churn_model.train_models()
-    churn_model.classification_report_image()
-    churn_model.feature_importance_plot()
+    churn_model.train_models_and_evaluate()
