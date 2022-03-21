@@ -1,4 +1,5 @@
-""" Test churn model
+""" Test and execute churn model.
+Run this file to test and log the model training and evaluation.
 
 Author: Simon Kallmaier
 Date: 21.03.2022
@@ -27,7 +28,7 @@ class TestChurnModelling:
     from ChurnModelling in churn_library.py
     """
 
-    def setup(self):
+    def __init__(self):
         """Set up the class."""
         self.churn_model = churn_library.ChurnModelling(
             data_pth="./data/bank_data.csv")
@@ -39,7 +40,8 @@ class TestChurnModelling:
             nb_of_expected_files: int,
             time_to_check: int = 600) -> None:
         """
-        Helper function to test the creation of input files. This method can be used both for images and models
+        Helper function to test the creation of input files. This method can be used both
+        for images and models
         :param path: path to files that should be checked
         :param function_name:  name of function for logging
         :param nb_of_expected_files: number of expected files to be created
@@ -53,7 +55,8 @@ class TestChurnModelling:
                 "Testing {function_name}: All expected EDA files are created")
         except AssertionError as err:
             logging.error(
-                f"Testing {function_name}: There are {len(os.listdir(os.path.join('images', 'eda')))} files. We expect 5."
+                f"Testing {function_name}: There are"
+                f"{len(os.listdir(os.path.join('images', 'eda')))} files. We expect 5."
             )
             raise err
 
@@ -65,18 +68,22 @@ class TestChurnModelling:
             try:
                 assert time_diff < time_to_check
                 logging.debug(
-                    f"Testing {function_name}: {image} has been added within {time_to_check / 60} minutes")
+                    f"Testing {function_name}: {image} has been added within"
+                    f"{time_to_check / 60} minutes")
             except AssertionError as err:
                 logging.error(
-                    f"Testing {function_name}: {image} is not up to date. The file was not created within last {time_to_check / 60} minutes."
+                    f"Testing {function_name}: {image} is not up to date. The file was not"
+                    f"created within last {time_to_check / 60} minutes."
                 )
                 raise err
         logging.info(
-            f"All files in /images/eda are created within the last {time_to_check / 60} minutes.")
+            f"Testing: {function_name}: SUCCESS. All files in /images/eda are created "
+            f"within the last {time_to_check / 60} minutes.")
 
     def test_import(self):
         """
-        test data import - this example is completed for you to assist with the other test functions
+        test data import - this example is completed for you to assist with the
+        other test functions
         """
         try:
             df = self.churn_model._import_data("./data/bank_data.csv")
@@ -102,17 +109,24 @@ class TestChurnModelling:
         encoded_dfs = self.churn_model._encoder_helper(
             df_to_encode=df, category_lst=constants.CAT_COLUMNS)
 
-        # save new column names in list. Same code which was used to define new
-        # names
+        # save new column names in list. Same code which was used to define new names
         new_cat_col_names = [
             f"{categorical_col_name}_Churn" for categorical_col_name in constants.CAT_COLUMNS]
-        # check if all columns exist
-        assert pd.Series(new_cat_col_names).isin(
-            encoded_dfs.columns).mean() == 1
+
+        try:
+            # check if all columns exist
+            assert pd.Series(new_cat_col_names).isin(
+                encoded_dfs.columns).mean() == 1
+            logging.info("Testing encoder_helper: SUCCESS")
+        except AssertionError as err:
+            logging.error(f"Testing encoder_helper: Not all columns exist in {encoded_dfs.columns}")
+            raise err
+
 
     def test_perform_eda(self):
         """
-        This test checks if all files are saved correctly, by checking if the list of plots is complete and by checking
+        This test checks if all files are saved correctly, by checking if the list of plots is
+        complete and by checking
         the update date of each file.
         """
         self.churn_model.perform_eda()
@@ -136,10 +150,12 @@ class TestChurnModelling:
             X_train, X_test, y_train, y_test = train_test_date
             assert isinstance(X_train, pd.DataFrame)
             logging.info(
-                "Testing perform_feature_engineering: Tuple of four pandas DataFrames are returned.")
+                "Testing perform_feature_engineering: SUCCESS Tuple of four pandas "
+                "DataFrames are returned.")
         except AssertionError as err:
             logging.error(
-                "Testing perform_feature_engineering: This function does not return a tuple of four DataFrames"
+                "Testing perform_feature_engineering: This function does not "
+                "return a tuple of four DataFrames"
             )
             raise err
 
@@ -147,18 +163,20 @@ class TestChurnModelling:
             assert X_train.shape[0] == y_train.shape[0]
             assert X_test.shape[1] == len(constants.KEEP_COLS)
             logging.info(
-                "Testing perform_feature_engineering: Train and test data have the correct shapre")
+                "Testing perform_feature_engineering: SUCCESS Train and test data have "
+                "the correct shapre")
         except AssertionError as err:
             logging.error(
-                "Testing perform_feature_engineering: Train or test data do not have the correct shapes."
-                f"X_train: {X_train.shape}, X_test: {X_test.shape}, y_train: {y_train.shape}, y_test: {y_test.shape}")
+                "Testing perform_feature_engineering: Train or test data do not "
+                "have the correct shapes."
+                f"X_train: {X_train.shape}, X_test: {X_test.shape}, "
+                f"y_train: {y_train.shape}, y_test: {y_test.shape}")
             raise err
 
     def test_train_models(self):
         """
         test train_models
         """
-        self.churn_model.set_train_test_split()
         self.churn_model.train_models_and_evaluate()
         self._helper_test_outputs_are_saved(
             path=os.path.join("models"),
@@ -178,4 +196,9 @@ class TestChurnModelling:
 
 
 if __name__ == "__main__":
-    pass
+    test_churn_model = TestChurnModelling()
+    test_churn_model.test_import()
+    test_churn_model.test_encoder_helper()
+    test_churn_model.test_perform_eda()
+    test_churn_model.test_perform_feature_engineering()
+    test_churn_model.test_train_models()

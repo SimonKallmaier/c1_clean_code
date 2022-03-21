@@ -1,3 +1,8 @@
+"""
+Define constants used in churn_library.py and churn_script_logging_and_tests.py
+author: Simon Kallmaier
+date: 21.03.2022
+"""
 CAT_COLUMNS = ["Gender", "Education_Level", "Marital_Status", "Income_Category", "Card_Category"]
 
 QUANT_COLUMNS = [

@@ -1,15 +1,10 @@
 """
-Create class ChurnModelling which loads the data, trains a random forest classifier and a logistic regression,
-and evaluates the performance.
+Create class ChurnModelling which loads the data, trains a random forest classifier
+and a logistic regression, and evaluates the performance.
+This file does not need to be run manually
 Author: Simon Kallmaier
 Date: March 2022
 """
-import constants
-from sklearn.metrics import plot_roc_curve, classification_report
-from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 import os
 import typing
 
@@ -18,25 +13,42 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import plot_roc_curve, classification_report
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split
+
+import constants
 
 sns.set()
 
 
 class ChurnModelling:
+    """
+    This class loads the bank_data from kaggle and trains a model predicting churn.
+    """
 
     models_path = {
         "rfc": os.path.join(
             "models", "rfc_model.pkl"), "lrc": os.path.join(
             "models", "logistic_model.pkl")}
 
+    param_grid = {
+        "n_estimators": [200, 500],
+        "max_features": ["auto", "sqrt"],
+        "max_depth": [4, 5, 100],
+        "criterion": ["gini", "entropy"],
+    }
+
     def __init__(self, data_pth):
         # load data
         self.data_pth = data_pth
-        df = self._import_data(self.data_pth)
-        df = self._encoder_helper(
-            df_to_encode=df,
+        data_frame = self._import_data(self.data_pth)
+        data_frame = self._encoder_helper(
+            df_to_encode=data_frame,
             category_lst=constants.CAT_COLUMNS)
-        self.df = df
+        self.data_frame: pd.DataFrame = data_frame
 
     @staticmethod
     def _import_data(pth: str) -> pd.DataFrame:
@@ -80,77 +92,64 @@ class ChurnModelling:
         """
         # define pre-defined path to save images.
         pth_to_eda_plots = os.path.join("images", "eda")
+        df_for_plotting = self.data_frame.copy()
 
         plt.figure(figsize=(20, 10))
-        self.df["Churn"].hist()
+        df_for_plotting["Churn"].hist()
         plt.savefig(os.path.join(pth_to_eda_plots, "churn_hist.png"))
 
         plt.figure(figsize=(20, 10))
-        self.df["Customer_Age"].hist()
+        df_for_plotting["Customer_Age"].hist()
         plt.savefig(os.path.join(pth_to_eda_plots, "customer_age_hist.png"))
 
         plt.figure(figsize=(20, 10))
-        self.df.Marital_Status.value_counts("normalize").plot(kind="bar")
+        df_for_plotting["Marital_Status"].value_counts("normalize").plot(kind="bar")
         plt.savefig(os.path.join(pth_to_eda_plots, "martial_status.png"))
 
         plt.figure(figsize=(20, 10))
-        sns.displot(self.df["Total_Trans_Ct"])
+        sns.distplot(df_for_plotting["Total_Trans_Ct"])
         plt.savefig(
             os.path.join(
                 pth_to_eda_plots,
                 "total_trans_ct_distribution.png"))
 
         plt.figure(figsize=(20, 10))
-        sns.heatmap(self.df.corr(), annot=False, cmap="Dark2_r", linewidths=2)
+        sns.heatmap(df_for_plotting.corr(), annot=False, cmap="Dark2_r", linewidths=2)
         plt.savefig(os.path.join(pth_to_eda_plots, "correlation_heatmap.png"))
 
     def _perform_feature_engineering(self, keep_cols: typing.List[str]):
         """
 
         :param keep_cols: list of columns that are used in model
-        :return: X_train: X training data
-                 X_test: X testing data
+        :return: x_train: X training data
+                 x_test: X testing data
                  y_train: y training data
                  y_test: y testing data
         """
-        y = self.df["Churn"]
-        X = pd.DataFrame()
-        X[keep_cols] = self.df[keep_cols]
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, random_state=42)
-        return X_train, X_test, y_train, y_test
-
-    def set_train_test_split(self):
-        """
-
-        :return: set train test split as class instances
-        """
-        X_train, X_test, y_train, y_test = self._perform_feature_engineering(
-            keep_cols=constants.KEEP_COLS)
-        self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
+        y_data = self.data_frame["Churn"]
+        x_data = pd.DataFrame()
+        x_data[keep_cols] = self.data_frame[keep_cols]
+        x_train, x_test, y_train, y_test = train_test_split(
+            x_data, y_data, test_size=0.3, random_state=42)
+        return x_train, x_test, y_train, y_test
 
     def train_models_and_evaluate(self):
         """
         train, store model results: images + scores, and store models
         :return: None
         """
+        x_train, x_test, y_train, y_test = self._perform_feature_engineering(
+            keep_cols=constants.KEEP_COLS)
 
         # grid search
         rfc = RandomForestClassifier(random_state=42)
         lrc = LogisticRegression()
 
-        param_grid = {
-            "n_estimators": [200, 500],
-            "max_features": ["auto", "sqrt"],
-            "max_depth": [4, 5, 100],
-            "criterion": ["gini", "entropy"],
-        }
-
-        cv_rfc = GridSearchCV(estimator=rfc, param_grid=param_grid, cv=5)
-        cv_rfc.fit(self.X_train, self.y_train)
+        cv_rfc = GridSearchCV(estimator=rfc, param_grid=ChurnModelling.param_grid, cv=5)
+        cv_rfc.fit(x_train, y_train)
         joblib.dump(cv_rfc.best_estimator_, ChurnModelling.models_path["rfc"])
 
-        lrc.fit(self.X_train, self.y_train)
+        lrc.fit(x_train, y_train)
         joblib.dump(lrc, ChurnModelling.models_path["lrc"])
 
         # classification report image
@@ -158,46 +157,37 @@ class ChurnModelling:
         rfc = joblib.load(ChurnModelling.models_path["rfc"])
         lrc = joblib.load(ChurnModelling.models_path["lrc"])
 
-        # prediction on train and test set for both models
-        y_train_preds_rf = rfc.predict(self.X_train)
-        y_test_preds_rf = rfc.predict(self.X_test)
-
-        y_train_preds_lr = lrc.predict(self.X_train)
-        y_test_preds_lr = lrc.predict(self.X_test)
-
         # scores
         print("random forest results")
         print("test results")
-        print(classification_report(self.y_test, y_test_preds_rf))
+        print(classification_report(y_test, rfc.predict(x_test)))
         print("train results")
-        print(classification_report(self.y_train, y_train_preds_rf))
+        print(classification_report(y_train, rfc.predict(x_train)))
 
         print("logistic regression results")
         print("test results")
-        print(classification_report(self.y_test, y_test_preds_lr))
+        print(classification_report(y_test, lrc.predict(x_test)))
         print("train results")
-        print(classification_report(self.y_train, y_train_preds_lr))
+        print(classification_report(y_train, lrc.predict(x_train)))
 
-        lrc_plot = plot_roc_curve(lrc, self.X_test, self.y_test)
+        lrc_plot = plot_roc_curve(lrc, x_test, y_test)
         # plots
         plt.figure(figsize=(15, 8))
-        ax = plt.gca()
-        rfc_disp = plot_roc_curve(
-            rfc, self.X_test, self.y_test, ax=ax, alpha=0.8)
-        lrc_plot.plot(ax=ax, alpha=0.8)
+        axis = plt.gca()
+        plot_roc_curve(rfc, x_test, y_test, ax=axis, alpha=0.8)
+        lrc_plot.plot(ax=axis, alpha=0.8)
         plt.savefig(os.path.join("images", "results", "auc.png"))
         plt.show()
 
         # feature importance plot
-        X_data = pd.concat([self.X_train, self.X_test])
-        model = joblib.load(ChurnModelling.models_path["rfc"])
+        x_data = pd.concat([x_train, x_test])
         # Calculate feature importance
-        importances = model.feature_importances_
+        importances = rfc.feature_importances_
         # Sort feature importance in descending order
         indices = np.argsort(importances)[::-1]
 
         # Rearrange feature names so they match the sorted feature importance
-        names = [X_data.columns[i] for i in indices]
+        names = [x_data.columns[i] for i in indices]
 
         # Create plot
         plt.figure(figsize=(20, 5))
@@ -207,19 +197,12 @@ class ChurnModelling:
         plt.ylabel("Importance")
 
         # Add bars
-        plt.bar(range(X_data.shape[1]), importances[indices])
+        plt.bar(range(x_data.shape[1]), importances[indices])
 
         # Add feature names as x-axis labels
-        plt.xticks(range(X_data.shape[1]), names, rotation=90)
+        plt.xticks(range(x_data.shape[1]), names, rotation=90)
         plt.savefig(
             os.path.join(
                 "images",
                 "feature_importance",
                 "feature_importance.png"))
-
-
-if __name__ == "__main__":
-    churn_model = ChurnModelling(data_pth="./data/bank_data.csv")
-    churn_model.perform_eda()
-    churn_model.set_train_test_split()
-    churn_model.train_models_and_evaluate()
