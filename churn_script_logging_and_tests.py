@@ -29,12 +29,15 @@ class TestChurnModelling:
 
     def setup(self):
         """Set up the class."""
-        self.churn_model = churn_library.ChurnModelling(data_pth="./data/bank_data.csv")
+        self.churn_model = churn_library.ChurnModelling(
+            data_pth="./data/bank_data.csv")
 
     @staticmethod
     def _helper_test_outputs_are_saved(
-        path: str, function_name: str, nb_of_expected_files: int, time_to_check: int = 600
-    ) -> None:
+            path: str,
+            function_name: str,
+            nb_of_expected_files: int,
+            time_to_check: int = 600) -> None:
         """
         Helper function to test the creation of input files. This method can be used both for images and models
         :param path: path to files that should be checked
@@ -46,7 +49,8 @@ class TestChurnModelling:
         try:
             # check if all files are created
             assert len(os.listdir(path)) == nb_of_expected_files
-            logging.info("Testing {function_name}: All expected EDA files are created")
+            logging.info(
+                "Testing {function_name}: All expected EDA files are created")
         except AssertionError as err:
             logging.error(
                 f"Testing {function_name}: There are {len(os.listdir(os.path.join('images', 'eda')))} files. We expect 5."
@@ -60,13 +64,15 @@ class TestChurnModelling:
             print(time_diff)
             try:
                 assert time_diff < time_to_check
-                logging.debug(f"Testing {function_name}: {image} has been added within {time_to_check / 60} minutes")
+                logging.debug(
+                    f"Testing {function_name}: {image} has been added within {time_to_check / 60} minutes")
             except AssertionError as err:
                 logging.error(
                     f"Testing {function_name}: {image} is not up to date. The file was not created within last {time_to_check / 60} minutes."
                 )
                 raise err
-        logging.info(f"All files in /images/eda are created within the last {time_to_check / 60} minutes.")
+        logging.info(
+            f"All files in /images/eda are created within the last {time_to_check / 60} minutes.")
 
     def test_import(self):
         """
@@ -83,7 +89,8 @@ class TestChurnModelling:
             assert df.shape[0] > 0
             assert df.shape[1] > 0
         except AssertionError as err:
-            logging.error("Testing import_data: The file doesn't appear to have rows and columns")
+            logging.error(
+                "Testing import_data: The file doesn't appear to have rows and columns")
             raise err
 
     def test_encoder_helper(self):
@@ -92,12 +99,16 @@ class TestChurnModelling:
         """
 
         df = self.churn_model._import_data(self.churn_model.data_pth)
-        encoded_dfs = self.churn_model._encoder_helper(df_to_encode=df, category_lst=constants.CAT_COLUMNS)
+        encoded_dfs = self.churn_model._encoder_helper(
+            df_to_encode=df, category_lst=constants.CAT_COLUMNS)
 
-        # save new column names in list. Same code which was used to define new names
-        new_cat_col_names = [f"{categorical_col_name}_Churn" for categorical_col_name in constants.CAT_COLUMNS]
+        # save new column names in list. Same code which was used to define new
+        # names
+        new_cat_col_names = [
+            f"{categorical_col_name}_Churn" for categorical_col_name in constants.CAT_COLUMNS]
         # check if all columns exist
-        assert pd.Series(new_cat_col_names).isin(encoded_dfs.columns).mean() == 1
+        assert pd.Series(new_cat_col_names).isin(
+            encoded_dfs.columns).mean() == 1
 
     def test_perform_eda(self):
         """
@@ -116,14 +127,16 @@ class TestChurnModelling:
         """
         test perform_feature_engineering
         """
-        train_test_date = self.churn_model._perform_feature_engineering(keep_cols=constants.KEEP_COLS)
+        train_test_date = self.churn_model._perform_feature_engineering(
+            keep_cols=constants.KEEP_COLS)
 
         try:
             # check data types
             assert isinstance(train_test_date, tuple)
             X_train, X_test, y_train, y_test = train_test_date
             assert isinstance(X_train, pd.DataFrame)
-            logging.info("Testing perform_feature_engineering: Tuple of four pandas DataFrames are returned.")
+            logging.info(
+                "Testing perform_feature_engineering: Tuple of four pandas DataFrames are returned.")
         except AssertionError as err:
             logging.error(
                 "Testing perform_feature_engineering: This function does not return a tuple of four DataFrames"
@@ -133,12 +146,12 @@ class TestChurnModelling:
         try:
             assert X_train.shape[0] == y_train.shape[0]
             assert X_test.shape[1] == len(constants.KEEP_COLS)
-            logging.info("Testing perform_feature_engineering: Train and test data have the correct shapre")
+            logging.info(
+                "Testing perform_feature_engineering: Train and test data have the correct shapre")
         except AssertionError as err:
             logging.error(
                 "Testing perform_feature_engineering: Train or test data do not have the correct shapes."
-                f"X_train: {X_train.shape}, X_test: {X_test.shape}, y_train: {y_train.shape}, y_test: {y_test.shape}"
-            )
+                f"X_train: {X_train.shape}, X_test: {X_test.shape}, y_train: {y_train.shape}, y_test: {y_test.shape}")
             raise err
 
     def test_train_models(self):

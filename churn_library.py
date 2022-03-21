@@ -4,6 +4,12 @@ and evaluates the performance.
 Author: Simon Kallmaier
 Date: March 2022
 """
+import constants
+from sklearn.metrics import plot_roc_curve, classification_report
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 import os
 import typing
 
@@ -15,24 +21,21 @@ import seaborn as sns
 
 sns.set()
 
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import plot_roc_curve, classification_report
-
-import constants
-
 
 class ChurnModelling:
 
-    models_path = {"rfc": os.path.join("models", "rfc_model.pkl"), "lrc": os.path.join("models", "logistic_model.pkl")}
+    models_path = {
+        "rfc": os.path.join(
+            "models", "rfc_model.pkl"), "lrc": os.path.join(
+            "models", "logistic_model.pkl")}
 
     def __init__(self, data_pth):
         # load data
         self.data_pth = data_pth
         df = self._import_data(self.data_pth)
-        df = self._encoder_helper(df_to_encode=df, category_lst=constants.CAT_COLUMNS)
+        df = self._encoder_helper(
+            df_to_encode=df,
+            category_lst=constants.CAT_COLUMNS)
         self.df = df
 
     @staticmethod
@@ -43,11 +46,14 @@ class ChurnModelling:
         :return: df_import: pandas dataframe
         """
         df_import = pd.read_csv(pth)
-        df_import["Churn"] = df_import["Attrition_Flag"].apply(lambda val: 0 if val == "Existing Customer" else 1)
+        df_import["Churn"] = df_import["Attrition_Flag"].apply(
+            lambda val: 0 if val == "Existing Customer" else 1)
         return df_import
 
     @staticmethod
-    def _encoder_helper(df_to_encode: pd.DataFrame, category_lst: typing.List[str]):
+    def _encoder_helper(
+            df_to_encode: pd.DataFrame,
+            category_lst: typing.List[str]):
         """
         helper function to turn each categorical column into a new column with
         propotion of churn for each category - associated with cell 15 from the notebook
@@ -89,7 +95,10 @@ class ChurnModelling:
 
         plt.figure(figsize=(20, 10))
         sns.displot(self.df["Total_Trans_Ct"])
-        plt.savefig(os.path.join(pth_to_eda_plots, "total_trans_ct_distribution.png"))
+        plt.savefig(
+            os.path.join(
+                pth_to_eda_plots,
+                "total_trans_ct_distribution.png"))
 
         plt.figure(figsize=(20, 10))
         sns.heatmap(self.df.corr(), annot=False, cmap="Dark2_r", linewidths=2)
@@ -107,7 +116,8 @@ class ChurnModelling:
         y = self.df["Churn"]
         X = pd.DataFrame()
         X[keep_cols] = self.df[keep_cols]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.3, random_state=42)
         return X_train, X_test, y_train, y_test
 
     def set_train_test_split(self):
@@ -115,7 +125,8 @@ class ChurnModelling:
 
         :return: set train test split as class instances
         """
-        X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.KEEP_COLS)
+        X_train, X_test, y_train, y_test = self._perform_feature_engineering(
+            keep_cols=constants.KEEP_COLS)
         self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
 
     def train_models_and_evaluate(self):
@@ -171,7 +182,8 @@ class ChurnModelling:
         # plots
         plt.figure(figsize=(15, 8))
         ax = plt.gca()
-        rfc_disp = plot_roc_curve(rfc, self.X_test, self.y_test, ax=ax, alpha=0.8)
+        rfc_disp = plot_roc_curve(
+            rfc, self.X_test, self.y_test, ax=ax, alpha=0.8)
         lrc_plot.plot(ax=ax, alpha=0.8)
         plt.savefig(os.path.join("images", "results", "auc.png"))
         plt.show()
@@ -199,7 +211,11 @@ class ChurnModelling:
 
         # Add feature names as x-axis labels
         plt.xticks(range(X_data.shape[1]), names, rotation=90)
-        plt.savefig(os.path.join("images", "feature_importance", "feature_importance.png"))
+        plt.savefig(
+            os.path.join(
+                "images",
+                "feature_importance",
+                "feature_importance.png"))
 
 
 if __name__ == "__main__":
