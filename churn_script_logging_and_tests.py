@@ -1,4 +1,4 @@
-"""
+""" Test churn model
 
 Author: Simon Kallmaier
 Date: 21.03.2022
@@ -15,7 +15,7 @@ import constants
 
 
 logging.basicConfig(
-    filename="./logs/churn_library.log",
+    filename="logs/churn_library.log",
     level=logging.INFO,
     filemode="w",
     format="%(name)s - %(levelname)s - %(message)s",
@@ -23,9 +23,8 @@ logging.basicConfig(
 
 
 class TestChurnModelling:
-    """TODO: add docstring.
-    # TODO: use pytest fixtures
-
+    """This class executes the training of the churn model by testing all methods
+    from ChurnModelling in churn_library.py
     """
 
     def setup(self):
@@ -36,6 +35,14 @@ class TestChurnModelling:
     def _helper_test_outputs_are_saved(
         path: str, function_name: str, nb_of_expected_images: int, time_to_check: int = 600
     ) -> None:
+        """
+        Helper function to test the creation of input files. This method can be used both for images and models
+        :param path: path to files that should be checked
+        :param function_name:  name of function for logging
+        :param nb_of_expected_images: number of expected files to be created
+        :param time_to_check: time window between text execution and file creation
+        :return: None
+        """
         try:
             # check if all files are created
             assert len(os.listdir(path)) == nb_of_expected_images
@@ -48,8 +55,9 @@ class TestChurnModelling:
 
         # check if all files are up-to-date
         for image in os.listdir(os.path.join("images", "eda")):
-            os_ct = os.path.getctime(image)
-            time_diff = time.time() - time.ctime(os_ct)
+            os_ct = os.path.getmtime(os.path.join("images", "eda", image))
+            time_diff = time.time() - os_ct
+            print(time_diff)
             try:
                 assert time_diff < time_to_check
                 logging.debug(f"Testing {function_name}: {image} has been added within {time_to_check / 60} minutes")
@@ -84,14 +92,12 @@ class TestChurnModelling:
         """
 
         df = self.churn_model._import_data(self.churn_model.data_pth)
-        encoded_dfs = self.churn_model._encoder_helper(df_to_encode=df, category_lst=constants.cat_columns)
+        encoded_dfs = self.churn_model._encoder_helper(df_to_encode=df, category_lst=constants.CAT_COLUMNS)
 
         # save new column names in list. Same code which was used to define new names
-        new_cat_col_names = [f"{categorical_col_name}_Churn" for categorical_col_name in constants.cat_columns]
+        new_cat_col_names = [f"{categorical_col_name}_Churn" for categorical_col_name in constants.CAT_COLUMNS]
         # check if all columns exist
         assert pd.Series(new_cat_col_names).isin(encoded_dfs.columns).mean() == 1
-
-        # TODO 2. check if encoding worked on all columns
 
     def test_perform_eda(self):
         """
@@ -110,7 +116,7 @@ class TestChurnModelling:
         """
         test perform_feature_engineering
         """
-        train_test_date = self.churn_model._perform_feature_engineering(keep_cols=constants.keep_cols)
+        train_test_date = self.churn_model._perform_feature_engineering(keep_cols=constants.KEEP_COLS)
 
         try:
             # check data types
@@ -126,7 +132,7 @@ class TestChurnModelling:
 
         try:
             assert X_train.shape[0] == y_train.shape[0]
-            assert X_test.shape[1] == len(constants.keep_cols)
+            assert X_test.shape[1] == len(constants.KEEP_COLS)
             logging.info("Testing perform_feature_engineering: Train and test data have the correct shapre")
         except AssertionError as err:
             logging.error(
@@ -135,35 +141,51 @@ class TestChurnModelling:
             )
             raise err
 
+    def test_train_models(self):
+        """
+        test train_models
+        """
+        self.churn_model.set_train_test_split()
+        self.churn_model.train_models()
+        self._helper_test_outputs_are_saved(
+            path=os.path.join("models"),
+            function_name="train_models",
+            nb_of_expected_images=2,
+        )
+
     def test_classification_report_image(self):
         """
         test train_models
         """
         self.churn_model.classification_report_image()
-        # TODO 1: test if reports are saved
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "results"),
             function_name="classification_report_image",
-            nb_of_expected_images=2,
+            nb_of_expected_images=1,
         )
-        # TODO: can only be called once a model exists
 
     def test_feature_importance_plot(self):
         """
         test train_models
         """
         self.churn_model.feature_importance_plot()
-        # TODO 1: test if reports are saved
-        # TODO: can only only be called once a rf model exists
+        self._helper_test_outputs_are_saved(
+            path=os.path.join("images", "feature_importance"),
+            function_name="feature_importance_plot",
+            nb_of_expected_images=2,
+        )
 
-    def test_train_models(self):
-        """
-        test train_models
-        """
-        self.churn_model.train_models()
-        # TODO 1: test if models are saved
-        # TODO 2: test if model can be loaded
+    def test_order_of_execution(self):
+        # TODO
+        assert False
 
 
 if __name__ == "__main__":
-    pass
+    test_churn_model = TestChurnModelling()
+    test_churn_model.test_import()
+    test_churn_model.test_encoder_helper()
+    test_churn_model.test_perform_eda()
+    test_churn_model.test_perform_feature_engineering()
+    test_churn_model.test_train_models()
+    test_churn_model.test_classification_report_image()
+    test_churn_model.test_feature_importance_plot()

@@ -32,18 +32,15 @@ class ChurnModelling:
         # load data
         self.data_pth = data_pth
         df = self._import_data(self.data_pth)
-        df = self._encoder_helper(df_to_encode=df, category_lst=constants.cat_columns)
+        df = self._encoder_helper(df_to_encode=df, category_lst=constants.CAT_COLUMNS)
         self.df = df
 
     @staticmethod
     def _import_data(pth: str) -> pd.DataFrame:
         """
         returns dataframe for the csv found at pth
-
-        input:
-                pth: a path to the csv
-        output:
-                df_import: pandas dataframe
+        :param pth: a path to the csv
+        :return: df_import: pandas dataframe
         """
         df_import = pd.read_csv(pth)
         df_import["Churn"] = df_import["Attrition_Flag"].apply(lambda val: 0 if val == "Existing Customer" else 1)
@@ -55,12 +52,9 @@ class ChurnModelling:
         helper function to turn each categorical column into a new column with
         propotion of churn for each category - associated with cell 15 from the notebook
 
-        input:
-                df_to_encode: pandas dataframe
-                category_lst: list of columns that contain categorical features
-
-        output:
-                df_to_encode: pandas dataframe with new columns for
+        :param df_to_encode: dataframe with categorical columns to encode
+        :param category_lst: list of columns that contain categorical features
+        :return: dataframe with new encoded columns
         """
         for categorical_col_name in category_lst:
             # dynamically define names for new encoded columns
@@ -76,11 +70,7 @@ class ChurnModelling:
     def perform_eda(self) -> None:
         """
         perform eda on self.ds and save figures to images folder
-        input:
-                self
-
-        output:
-                None
+        :return: None
         """
         # define pre-defined path to save images.
         pth_to_eda_plots = os.path.join("images", "eda")
@@ -107,15 +97,12 @@ class ChurnModelling:
 
     def _perform_feature_engineering(self, keep_cols: typing.List[str]):
         """
-        input:
-                  self
-                  keep_cols: list of columns that are used in model
 
-        output:
-                  X_train: X training data
-                  X_test: X testing data
-                  y_train: y training data
-                  y_test: y testing data
+        :param keep_cols: list of columns that are used in model
+        :return: X_train: X training data
+                 X_test: X testing data
+                 y_train: y training data
+                 y_test: y testing data
         """
         y = self.df["Churn"]
         X = pd.DataFrame()
@@ -130,16 +117,13 @@ class ChurnModelling:
         output:
                 set train test split as class instances
         """
-        X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.keep_cols)
+        X_train, X_test, y_train, y_test = self._perform_feature_engineering(keep_cols=constants.KEEP_COLS)
         self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
 
     def train_models(self):
         """
         train, store model results: images + scores, and store models
-        input:
-                  self
-        output:
-                  None
+        :return: None
         """
 
         # grid search
@@ -164,11 +148,7 @@ class ChurnModelling:
         """
         produces classification report for training and testing results and stores report as image
         in images folder
-        input:
-                self
-
-        output:
-                 None
+        :return: None
         """
 
         # load models
@@ -207,11 +187,7 @@ class ChurnModelling:
     def feature_importance_plot(self):
         """
         creates and stores the feature importance in pth
-        input:
-                self
-
-        output:
-                 None
+        :return:
         """
         X_data = pd.concat([self.X_train, self.X_test])
         model = joblib.load(ChurnModelling.models_path["rfc"])
@@ -235,7 +211,7 @@ class ChurnModelling:
 
         # Add feature names as x-axis labels
         plt.xticks(range(X_data.shape[1]), names, rotation=90)
-        plt.savefig(os.path.join("images", "results", "feature_importance.png"))
+        plt.savefig(os.path.join("images", "feature_importance", "feature_importance.png"))
 
 
 if __name__ == "__main__":

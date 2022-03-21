@@ -1,6 +1,6 @@
-cat_columns = ["Gender", "Education_Level", "Marital_Status", "Income_Category", "Card_Category"]
+CAT_COLUMNS = ["Gender", "Education_Level", "Marital_Status", "Income_Category", "Card_Category"]
 
-quant_columns = [
+QUANT_COLUMNS = [
     "Customer_Age",
     "Dependent_count",
     "Months_on_book",
@@ -17,7 +17,7 @@ quant_columns = [
     "Avg_Utilization_Ratio",
 ]
 
-keep_cols = [
+KEEP_COLS = [
     "Customer_Age",
     "Dependent_count",
     "Months_on_book",
