@@ -199,16 +199,12 @@ class TestChurnModelling:
         )
         self._helper_test_time_creation_of_output(
             folder="results",
-            function_name="classification_report_image",
-        )
-        self._helper_test_time_creation_of_output(
-            folder="results",
-            function_name="feature_importance_plot",
+            function_name="train_models_evaluation",
         )
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "results"),
             function_name="classification_report_image",
-            nb_of_expected_files=2,
+            nb_of_expected_files=4,
         )
 
 

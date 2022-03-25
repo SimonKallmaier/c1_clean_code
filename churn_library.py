@@ -30,12 +30,12 @@ class ChurnModelling:
     """
 
     models_path = {
-        "rfc": os.path.join(
-            "models", "rfc_model.pkl"), "lrc": os.path.join(
-            "models", "logistic_model.pkl")}
+        "rfc": os.path.join("models", "rfc_model.pkl"),
+        "lrc": os.path.join("models", "logistic_model.pkl"),
+    }
 
     param_grid = {
-        "n_estimators": [200, 500],
+        "n_estimators": [20, 50],
         "max_features": ["auto", "sqrt"],
         "max_depth": [4, 5, 100],
         "criterion": ["gini", "entropy"],
@@ -46,8 +46,8 @@ class ChurnModelling:
         self.data_pth = data_pth
         data_frame = self._import_data(self.data_pth)
         data_frame = self._encoder_helper(
-            df_to_encode=data_frame,
-            category_lst=constants.CAT_COLUMNS)
+            df_to_encode=data_frame, category_lst=constants.CAT_COLUMNS
+        )
         self.data_frame: pd.DataFrame = data_frame
 
     @staticmethod
@@ -59,13 +59,14 @@ class ChurnModelling:
         """
         df_import = pd.read_csv(pth)
         df_import["Churn"] = df_import["Attrition_Flag"].apply(
-            lambda val: 0 if val == "Existing Customer" else 1)
+            lambda val: 0 if val == "Existing Customer" else 1
+        )
         return df_import
 
     @staticmethod
     def _encoder_helper(
-            df_to_encode: pd.DataFrame,
-            category_lst: typing.List[str]):
+        df_to_encode: pd.DataFrame, category_lst: typing.List[str]
+    ):
         """
         helper function to turn each categorical column into a new column with
         propotion of churn for each category - associated with cell 15 from the notebook
@@ -103,18 +104,21 @@ class ChurnModelling:
         plt.savefig(os.path.join(pth_to_eda_plots, "customer_age_hist.png"))
 
         plt.figure(figsize=(20, 10))
-        df_for_plotting["Marital_Status"].value_counts("normalize").plot(kind="bar")
+        df_for_plotting["Marital_Status"].value_counts("normalize").plot(
+            kind="bar"
+        )
         plt.savefig(os.path.join(pth_to_eda_plots, "martial_status.png"))
 
         plt.figure(figsize=(20, 10))
         sns.distplot(df_for_plotting["Total_Trans_Ct"])
         plt.savefig(
-            os.path.join(
-                pth_to_eda_plots,
-                "total_trans_ct_distribution.png"))
+            os.path.join(pth_to_eda_plots, "total_trans_ct_distribution.png")
+        )
 
         plt.figure(figsize=(20, 10))
-        sns.heatmap(df_for_plotting.corr(), annot=False, cmap="Dark2_r", linewidths=2)
+        sns.heatmap(
+            df_for_plotting.corr(), annot=False, cmap="Dark2_r", linewidths=2
+        )
         plt.savefig(os.path.join(pth_to_eda_plots, "correlation_heatmap.png"))
 
     def _perform_feature_engineering(self, keep_cols: typing.List[str]):
@@ -130,7 +134,8 @@ class ChurnModelling:
         x_data = pd.DataFrame()
         x_data[keep_cols] = self.data_frame[keep_cols]
         x_train, x_test, y_train, y_test = train_test_split(
-            x_data, y_data, test_size=0.3, random_state=42)
+            x_data, y_data, test_size=0.3, random_state=42
+        )
         return x_train, x_test, y_train, y_test
 
     def train_models_and_evaluate(self):
@@ -139,13 +144,16 @@ class ChurnModelling:
         :return: None
         """
         x_train, x_test, y_train, y_test = self._perform_feature_engineering(
-            keep_cols=constants.KEEP_COLS)
+            keep_cols=constants.KEEP_COLS
+        )
 
         # grid search
         rfc = RandomForestClassifier(random_state=42)
         lrc = LogisticRegression()
 
-        cv_rfc = GridSearchCV(estimator=rfc, param_grid=ChurnModelling.param_grid, cv=5)
+        cv_rfc = GridSearchCV(
+            estimator=rfc, param_grid=ChurnModelling.param_grid, cv=5
+        )
         cv_rfc.fit(x_train, y_train)
         joblib.dump(cv_rfc.best_estimator_, ChurnModelling.models_path["rfc"])
 
@@ -157,18 +165,71 @@ class ChurnModelling:
         rfc = joblib.load(ChurnModelling.models_path["rfc"])
         lrc = joblib.load(ChurnModelling.models_path["lrc"])
 
-        # scores
-        print("random forest results")
-        print("test results")
-        print(classification_report(y_test, rfc.predict(x_test)))
-        print("train results")
-        print(classification_report(y_train, rfc.predict(x_train)))
+        plt.figure(figsize=(5, 5))
+        plt.text(
+            0.01,
+            1.25,
+            str("Random Forest Train"),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )
+        plt.text(
+            0.01,
+            0.05,
+            str(classification_report(y_test, rfc.predict(x_test))),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )  # approach improved by OP -> monospace!
+        plt.text(
+            0.01,
+            0.6,
+            str("Random Forest Test"),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )
+        plt.text(
+            0.01,
+            0.7,
+            str(classification_report(y_train, rfc.predict(x_train))),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )  # approach improved by OP -> monospace!
+        plt.savefig(
+            os.path.join("images", "results", "classification_report_rfc.png")
+        )
 
-        print("logistic regression results")
-        print("test results")
-        print(classification_report(y_test, lrc.predict(x_test)))
-        print("train results")
-        print(classification_report(y_train, lrc.predict(x_train)))
+        plt.figure(figsize=(5, 5))
+        plt.text(
+            0.01,
+            1.25,
+            str("Logistic Regression Train"),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )
+        plt.text(
+            0.01,
+            0.05,
+            str(classification_report(y_train, lrc.predict(x_train))),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )  # approach improved by OP -> monospace!
+        plt.text(
+            0.01,
+            0.6,
+            str("Logistic Regression Test"),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )
+        plt.text(
+            0.01,
+            0.7,
+            str(classification_report(y_test, lrc.predict(x_test))),
+            {"fontsize": 10},
+            fontproperties="monospace",
+        )  # approach improved by OP -> monospace!
+        plt.savefig(
+            os.path.join("images", "results", "classification_report_lrc.png")
+        )
 
         lrc_plot = plot_roc_curve(lrc, x_test, y_test)
         # plots
@@ -201,8 +262,4 @@ class ChurnModelling:
 
         # Add feature names as x-axis labels
         plt.xticks(range(x_data.shape[1]), names, rotation=90)
-        plt.savefig(
-            os.path.join(
-                "images",
-                "results",
-                "feature_importance.png"))
+        plt.savefig(os.path.join("images", "results", "feature_importance.png"))
