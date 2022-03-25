@@ -50,11 +50,11 @@ class TestChurnModelling:
             # check if all files are created
             assert len(os.listdir(path)) == nb_of_expected_files
             logging.info(
-                "Testing {function_name}: All expected EDA files are created")
+                f"Testing {function_name}: All expected files are created")
         except AssertionError as err:
             logging.error(
                 f"Testing {function_name}: There are"
-                f"{len(os.listdir(os.path.join('images', 'eda')))} files. We expect 5."
+                f"{len(os.listdir(path))} files. We expect {nb_of_expected_files}."
             )
             raise err
 
@@ -88,7 +88,7 @@ class TestChurnModelling:
                 )
                 raise err
         logging.info(
-            f"Testing: {function_name}: SUCCESS. All files in /images/eda are created "
+            f"Testing: {function_name}: SUCCESS. All files in /images/{folder} are created "
             f"within the last {time_to_check / 60} minutes.")
 
     def test_import(self):
@@ -132,7 +132,6 @@ class TestChurnModelling:
         except AssertionError as err:
             logging.error(f"Testing encoder_helper: Not all columns exist in {encoded_dfs.columns}")
             raise err
-
 
     def test_perform_eda(self):
         """
