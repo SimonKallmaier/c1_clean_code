@@ -43,7 +43,7 @@ class TestChurnModelling:
         for images and models
         :param path: path to files that should be checked
         :param function_name:  name of function for logging
-        :param nb_of_expected_files: number of expected files to be created
+        :param nb_of_expected_files: amount expected files to be created
         :return: None
         """
         try:
@@ -93,14 +93,14 @@ class TestChurnModelling:
 
     def test_import(self):
         """
-        test data import - this example is completed for you to assist with the
+        test data import - this example is completed for you to help with the
         other test functions
         """
         try:
             df = self.churn_model._import_data("./data/bank_data.csv")
             logging.info("Testing import_data: SUCCESS")
         except FileNotFoundError as err:
-            logging.error("Testing import_eda: The file wasn't found")
+            logging.error("Testing import_eda: The file is not found")
             raise err
 
         try:
@@ -120,7 +120,7 @@ class TestChurnModelling:
         encoded_dfs = self.churn_model._encoder_helper(
             df_to_encode=df, category_lst=constants.CAT_COLUMNS)
 
-        # save new column names in list. Same code which was used to define new names
+        # save new column names in list. Same code which is used to define new names
         new_cat_col_names = [
             f"{categorical_col_name}_Churn" for categorical_col_name in constants.CAT_COLUMNS]
 
@@ -178,7 +178,7 @@ class TestChurnModelling:
             assert X_test.shape[1] == len(constants.KEEP_COLS)
             logging.info(
                 "Testing perform_feature_engineering: SUCCESS Train and test data have "
-                "the correct shapre")
+                "the correct shape")
         except AssertionError as err:
             logging.error(
                 "Testing perform_feature_engineering: Train or test data do not "
