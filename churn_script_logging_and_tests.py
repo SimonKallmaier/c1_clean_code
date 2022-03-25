@@ -37,15 +37,13 @@ class TestChurnModelling:
     def _helper_test_outputs_are_saved(
             path: str,
             function_name: str,
-            nb_of_expected_files: int,
-            time_to_check: int = 600) -> None:
+            nb_of_expected_files: int) -> None:
         """
         Helper function to test the creation of input files. This method can be used both
         for images and models
         :param path: path to files that should be checked
         :param function_name:  name of function for logging
         :param nb_of_expected_files: number of expected files to be created
-        :param time_to_check: time window between text execution and file creation
         :return: None
         """
         try:
@@ -60,9 +58,22 @@ class TestChurnModelling:
             )
             raise err
 
+    @staticmethod
+    def _helper_test_time_creation_of_output(
+            folder: str,
+            function_name: str,
+            time_to_check: int = 600) -> None:
+        """
+        Helper function to test the creation of input files. This method can be used both
+        for images and models
+        :param path: path to files that should be checked
+        :param function_name:  name of function for logging
+        :param time_to_check: time window between text execution and file creation
+        :return: None
+        """
         # check if all files are up-to-date
-        for image in os.listdir(os.path.join("images", "eda")):
-            os_ct = os.path.getmtime(os.path.join("images", "eda", image))
+        for image in os.listdir(os.path.join("images", folder)):
+            os_ct = os.path.getmtime(os.path.join("images", folder, image))
             time_diff = time.time() - os_ct
             print(time_diff)
             try:
@@ -136,6 +147,10 @@ class TestChurnModelling:
             function_name="perform_eda",
             nb_of_expected_files=5,
         )
+        self._helper_test_time_creation_of_output(
+            folder="eda",
+            function_name="perform_eda",
+        )
 
     def test_perform_feature_engineering(self):
         """
@@ -183,15 +198,18 @@ class TestChurnModelling:
             function_name="train_models",
             nb_of_expected_files=2,
         )
+        self._helper_test_time_creation_of_output(
+            folder="results",
+            function_name="classification_report_image",
+        )
+        self._helper_test_time_creation_of_output(
+            folder="results",
+            function_name="feature_importance_plot",
+        )
         self._helper_test_outputs_are_saved(
             path=os.path.join("images", "results"),
             function_name="classification_report_image",
-            nb_of_expected_files=1,
-        )
-        self._helper_test_outputs_are_saved(
-            path=os.path.join("images", "feature_importance"),
-            function_name="feature_importance_plot",
-            nb_of_expected_files=1,
+            nb_of_expected_files=2,
         )
 
 

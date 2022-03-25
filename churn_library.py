@@ -204,5 +204,5 @@ class ChurnModelling:
         plt.savefig(
             os.path.join(
                 "images",
-                "feature_importance",
+                "results",
                 "feature_importance.png"))
