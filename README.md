@@ -54,3 +54,24 @@ To run the prediction, simply run
 ipython churn_script_logging_and_tests_solution.py
 ```
 
+### Lint Code
+
+Ppi install linting requirements 
+
+```
+pip install pylint
+pip install autopep8
+```
+
+Run pylint
+```
+pylint churn_library.py
+pylint churn_script_logging_and_tests.py
+```
+
+Run autopep8
+```
+autopep8 --in-place --aggressive --aggressive churn_script_logging_and_tests.py
+autopep8 --in-place --aggressive --aggressive churn_library.py
+```
+
